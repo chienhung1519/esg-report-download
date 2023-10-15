@@ -7,6 +7,8 @@ from tqdm.auto import tqdm
 BASE_URL = "https://mops.twse.com.tw/server-java/FileDownLoad?step=9&filePath=/home/html/nas/protect/t100/&fileName="
 
 meta_data_path = "data/meta-data"
+counter = 0
+# for meta_data in Path(meta_data_path).glob("*.csv"):
 for meta_data in Path(meta_data_path).glob("*.csv"):
     Path("data", meta_data.stem).mkdir(parents=True, exist_ok=True)
     df = pd.read_csv(meta_data, encoding="cp950")
@@ -24,5 +26,16 @@ for meta_data in Path(meta_data_path).glob("*.csv"):
         save_path = Path("data", meta_data.stem, f"{idx}_{name}.pdf")
         # Skip if the data is already downloaded
         if save_path.exists():
-            continue
-        urllib.request.urlretrieve(url, save_path)
+            if not b"Too many query requests from your ip" in Path(save_path).read_bytes():
+                continue
+            urllib.request.urlretrieve(url, save_path)
+        while b"Too many query requests from your ip" in Path(save_path).read_bytes():
+            print("Sleeping...")
+            time.sleep(10)
+            urllib.request.urlretrieve(url, save_path)
+        print(save_path)
+        counter += 1
+        if counter % 5 == 0:
+            print("Sleeping...")
+            time.sleep(30)
+        time.sleep(5)
